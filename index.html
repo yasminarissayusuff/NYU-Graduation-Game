@@ -1,1 +1,1268 @@
-<https://github.com/yasminarissayusuff/Still-Point-Info-Site-major-project-1-/raw/claude/nyu-graduation-game-U4mMU/nyu-graduation-game.html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NYU Graduation Adventure</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    background: #1a0a3a;
+    display: -webkit-flex; display: flex;
+    -webkit-flex-direction: column; flex-direction: column;
+    -webkit-align-items: center; align-items: center;
+    -webkit-justify-content: center; justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden; touch-action: none;
+  }
+  #title {
+    color: #f5d76e; font-size: 18px; font-weight: bold;
+    margin-bottom: 8px; text-shadow: 2px 2px 0 #6b21a8; letter-spacing: 2px;
+  }
+  #outer { -webkit-transform-origin: top center; transform-origin: top center; }
+  #gameWrap {
+    position: relative;
+    border: 5px solid #6b21a8; border-radius: 6px;
+    box-shadow: 0 0 40px rgba(107,33,168,0.8);
+  }
+  canvas { display: block; }
+  #hud {
+    display: -webkit-flex; display: flex;
+    -webkit-justify-content: space-around; justify-content: space-around;
+    background: rgba(26,10,58,0.95);
+    padding: 6px 4px;
+  }
+  .badge {
+    color: #888; font-size: 10px; text-align: center;
+    padding: 3px 6px; border: 1px solid #444; border-radius: 4px;
+    -webkit-flex: 1; flex: 1;
+    background: rgba(0,0,0,0.3);
+  }
+  .badge.done { color: #f5d76e; border-color: #f5d76e; background: rgba(107,33,168,0.4); }
+  .badge.active { color: #fff; border-color: #9b59b6; background: rgba(107,33,168,0.6); }
+  #dlgBox {
+    display: none; position: absolute;
+    left: 10px; right: 10px; bottom: 60px;
+    background: rgba(20,0,50,0.97); border: 2px solid #9b59b6;
+    border-radius: 8px; padding: 10px 14px; color: #eee;
+    font-size: 13px; line-height: 1.5; cursor: pointer;
+    z-index: 20;
+  }
+  #dlgBox span { display: block; margin-top: 6px; color: #f5d76e; font-size: 11px; text-align: right; }
+  #dpad {
+    position: absolute; bottom: 6px; left: 8px;
+    display: grid; grid-template-columns: 36px 36px 36px;
+    grid-template-rows: 36px 36px 36px; z-index: 15;
+  }
+  .dBtn {
+    background: rgba(107,33,168,0.7); border: 2px solid #9b59b6;
+    border-radius: 6px; color: #fff; font-size: 16px;
+    display: -webkit-flex; display: flex;
+    -webkit-align-items: center; align-items: center;
+    -webkit-justify-content: center; justify-content: center;
+    cursor: pointer; -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .dBtn:active { background: rgba(155,89,182,0.9); }
+  #dpad .up    { grid-column:2; grid-row:1; }
+  #dpad .left  { grid-column:1; grid-row:2; }
+  #dpad .right { grid-column:3; grid-row:2; }
+  #dpad .down  { grid-column:2; grid-row:3; }
+  #tapBtn {
+    position: absolute; bottom: 10px; right: 10px;
+    width: 70px; height: 70px; border-radius: 50%;
+    background: rgba(107,33,168,0.85); border: 3px solid #f5d76e;
+    color: #f5d76e; font-size: 10px; font-weight: bold;
+    text-align: center; line-height: 1.2;
+    display: -webkit-flex; display: flex;
+    -webkit-align-items: center; align-items: center;
+    -webkit-justify-content: center; justify-content: center;
+    cursor: pointer; z-index: 15;
+    -webkit-user-select: none; user-select: none;
+  }
+  #tapBtn:active { background: rgba(155,89,182,1); }
+  #winScreen {
+    display: none; position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26,10,58,0.97);
+    -webkit-flex-direction: column; flex-direction: column;
+    -webkit-align-items: center; align-items: center;
+    -webkit-justify-content: center; justify-content: center;
+    z-index: 50; text-align: center; padding: 20px;
+    color: #f5d76e;
+  }
+  #winScreen h1 { font-size: 28px; margin-bottom: 14px; text-shadow: 2px 2px 0 #6b21a8; }
+  #winScreen p { font-size: 14px; color: #eee; line-height: 1.7; max-width: 320px; }
+  #winScreen .big { font-size: 32px; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div id="title">NYU GRADUATION ADVENTURE</div>
+<div id="outer">
+  <div id="gameWrap">
+    <canvas id="c" width="640" height="480"></canvas>
+    <div id="hud">
+      <div class="badge active" id="b0">Bookstore</div>
+      <div class="badge" id="b1">Paulson</div>
+      <div class="badge" id="b2">Bobst</div>
+      <div class="badge" id="b3">WSP Arch</div>
+    </div>
+    <div id="dlgBox" onclick="advanceDialogue()">
+      <div id="dlgText"></div>
+      <span>Tap to continue &gt;</span>
+    </div>
+    <div id="dpad">
+      <div class="dBtn up" id="btnU">^</div>
+      <div class="dBtn left" id="btnL">&lt;</div>
+      <div class="dBtn right" id="btnR">&gt;</div>
+      <div class="dBtn down" id="btnD">v</div>
+    </div>
+    <div id="tapBtn">TAP<br>HERE</div>
+    <div id="winScreen">
+      <div class="big">&#127891; &#128156;</div>
+      <h1>Congratulations Ricky!<br>You did it!</h1>
+      <p>Happy graduation!! &#128156;<br><br>
+      You walked through Washington Square Arch in your NYU graduation gown!<br><br>
+      Your journey through Manhattan brought you to NYU Bookstore, Paulson Center, and Bobst Library — and finally to the iconic arch.<br><br>
+      Go celebrate, graduate! &#127891; &#128156; &#127891;</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   NYU GRADUATION ADVENTURE — Side-scrolling street view
+   ES5 compatible, Safari/iPad safe
+   ============================================================ */
+
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+
+/* ---- Error display ---- */
+function showError(msg) {
+  ctx.fillStyle = '#1a0a3a';
+  ctx.fillRect(0,0,640,480);
+  ctx.fillStyle = '#ff4444';
+  ctx.font = 'bold 14px Courier New';
+  ctx.fillText('ERROR:', 20, 40);
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px Courier New';
+  var words = msg.split(' ');
+  var line = '';
+  var y = 60;
+  for (var i = 0; i < words.length; i++) {
+    var test = line + words[i] + ' ';
+    if (ctx.measureText(test).width > 600) {
+      ctx.fillText(line, 20, y);
+      line = words[i] + ' ';
+      y += 18;
+    } else { line = test; }
+  }
+  ctx.fillText(line, 20, y);
+}
+window.onerror = function(msg, src, line) {
+  showError(msg + ' (line ' + line + ')');
+  return true;
+};
+
+/* ---- Helpers ---- */
+function oval(ctx, cx, cy, rx, ry) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - ry);
+  ctx.bezierCurveTo(cx + rx*0.552, cy - ry, cx + rx, cy - ry*0.552, cx + rx, cy);
+  ctx.bezierCurveTo(cx + rx, cy + ry*0.552, cx + rx*0.552, cy + ry, cx, cy + ry);
+  ctx.bezierCurveTo(cx - rx*0.552, cy + ry, cx - rx, cy + ry*0.552, cx - rx, cy);
+  ctx.bezierCurveTo(cx - rx, cy - ry*0.552, cx - rx*0.552, cy - ry, cx, cy - ry);
+  ctx.closePath();
+}
+
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+/* ---- Scaling ---- */
+function scaleGame() {
+  var outer = document.getElementById('outer');
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var titleH = document.getElementById('title').offsetHeight + 8;
+  var avail = Math.min(vw, (vh - titleH) * (640/520));
+  var scale = Math.min(1, avail / 640);
+  outer.style.webkitTransform = 'scale(' + scale + ')';
+  outer.style.transform = 'scale(' + scale + ')';
+}
+scaleGame();
+window.addEventListener('resize', scaleGame);
+
+/* ---- Input ---- */
+var keys = {};
+window.addEventListener('keydown', function(e) {
+  keys[e.key] = true;
+  if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.preventDefault();
+  if (e.key === ' ') pressAction();
+});
+window.addEventListener('keyup', function(e) { keys[e.key] = false; });
+
+function bindBtn(id, down, up) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('touchstart', function(e){ e.preventDefault(); down(); }, {passive:false});
+  el.addEventListener('touchend',   function(e){ e.preventDefault(); if(up) up(); }, {passive:false});
+  el.addEventListener('mousedown',  function(e){ e.preventDefault(); down(); });
+  el.addEventListener('mouseup',    function(e){ e.preventDefault(); if(up) up(); });
+}
+bindBtn('btnL',   function(){ keys['ArrowLeft']=true;  }, function(){ keys['ArrowLeft']=false;  });
+bindBtn('btnR',   function(){ keys['ArrowRight']=true; }, function(){ keys['ArrowRight']=false; });
+bindBtn('btnU',   function(){ pressAction(); }, null);
+bindBtn('btnD',   function(){ pressAction(); }, null);
+bindBtn('tapBtn', function(){ pressAction(); }, null);
+
+/* ---- Game state ---- */
+var GW = 3400;   // world width
+var GH = 480;
+var CW = 640;
+var GY = 385;    // horizon / ground y
+var GROUND = 400; // character foot y
+
+var player = {
+  worldX: 100,
+  y: GROUND,
+  vy: 0,
+  facing: 1,    // 1=right, -1=left
+  walking: false,
+  books: false,
+  walkFrame: 0
+};
+
+var camera = 0; // world x offset
+
+var progress = 0;     // 0=none,1=bookstore,2=paulson,3=bobst,4=arch
+var celebrating = false;
+var celebJumps = 0;
+var celebTimer = 0;
+var won = false;
+
+var dlgActive = false;
+var dlgSource = '';
+var dlgPages = [];
+var dlgPage = 0;
+
+var bgBuildings = [];
+(function() {
+  var bx = 0;
+  while (bx < GW) {
+    bgBuildings.push({ x: bx, w: 40 + Math.floor(Math.random()*80), h: 60 + Math.floor(Math.random()*120) });
+    bx += 50 + Math.floor(Math.random()*80);
+  }
+})();
+
+/* ---- Locations ---- */
+var locations = [
+  { id: 'bookstore', worldX: 380, w: 280, dlgDone: false },
+  { id: 'paulson',   worldX: 920, w: 260, dlgDone: false },
+  { id: 'bobst',     worldX: 1540, w: 300, dlgDone: false },
+  { id: 'arch',      worldX: 2500, w: 200, dlgDone: false }
+];
+
+var TREE_POSITIONS = [150, 250, 700, 1100, 1320, 2130, 2160, 2400, 2600, 2700, 2900, 3100];
+var LAMP_POSITIONS = [290, 870, 1500, 2180];
+
+/* ---- Dialogue ---- */
+var DIALOGUES = {
+  intro: [
+    'Welcome to NYU Graduation Day! Walk RIGHT through Manhattan.',
+    'Visit the NYU Bookstore, Paulson Center, and Bobst Library.',
+    'Get close to each building and press TAP HERE (or Space) to enter!'
+  ],
+  bookstore: [
+    'NYU Bookstore! Purple and gold everywhere — graduation swag galore.',
+    'You grab your grad supplies and tuck two books under your arm. Onward!'
+  ],
+  paulson: [
+    'The NYU Paulson Center — sleek glass and steel in the heart of the Village.',
+    'You admire the modern architecture. Your gown swishes. Keep going!'
+  ],
+  bobst: [
+    'Elmer Holmes Bobst Library — the iconic red granite fortress of knowledge.',
+    'All those all-nighters paid off. Walk to Washington Square Park!'
+  ],
+  arch: [
+    'The Washington Square Arch! The famous landmark of NYU.',
+    'You step through — the crowd cheers! CONGRATULATIONS, GRADUATE!'
+  ]
+};
+
+function startDialogue(src) {
+  dlgSource = src;
+  dlgPages = DIALOGUES[src];
+  dlgPage = 0;
+  dlgActive = true;
+  showPage();
+}
+function showPage() {
+  var el = document.getElementById('dlgBox');
+  var te = document.getElementById('dlgText');
+  el.style.display = 'block';
+  te.textContent = dlgPages[dlgPage];
+}
+function advanceDialogue() {
+  if (!dlgActive) return;
+  dlgPage++;
+  if (dlgPage >= dlgPages.length) {
+    dlgActive = false;
+    document.getElementById('dlgBox').style.display = 'none';
+    if (dlgSource === 'bookstore' && progress === 0) { progress = 1; player.books = true; updateHUD(); }
+    else if (dlgSource === 'paulson' && progress === 1) { progress = 2; updateHUD(); }
+    else if (dlgSource === 'bobst' && progress === 2)   { progress = 3; updateHUD(); }
+    else if (dlgSource === 'arch'  && progress === 3)   { progress = 4; startCelebration(); }
+  } else {
+    showPage();
+  }
+}
+
+/* ---- HUD ---- */
+function updateHUD() {
+  var ids = ['b0','b1','b2','b3'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    el.className = 'badge';
+    if (i < progress) el.className = 'badge done';
+    else if (i === progress) el.className = 'badge active';
+  }
+}
+
+/* ---- Celebration ---- */
+function startCelebration() {
+  celebrating = true;
+  celebJumps = 0;
+  celebTimer = 0;
+}
+
+/* ---- Action ---- */
+function pressAction() {
+  if (won) return;
+  if (dlgActive) { advanceDialogue(); return; }
+  if (celebrating) return;
+
+  var loc = getNearLocation();
+  if (!loc) return;
+
+  if (<loc.id> === 'bookstore' && progress === 0 && !loc.dlgDone) {
+    loc.dlgDone = true; startDialogue('bookstore');
+  } else if (<loc.id> === 'paulson' && progress === 1 && !loc.dlgDone) {
+    loc.dlgDone = true; startDialogue('paulson');
+  } else if (<loc.id> === 'bobst' && progress === 2 && !loc.dlgDone) {
+    loc.dlgDone = true; startDialogue('bobst');
+  } else if (<loc.id> === 'arch' && progress === 3 && !loc.dlgDone) {
+    loc.dlgDone = true; startDialogue('arch');
+  }
+}
+
+function getNearLocation() {
+  for (var i = 0; i < locations.length; i++) {
+    var loc = locations[i];
+    var doorX = loc.worldX + loc.w * 0.5;
+    var dist = Math.abs(player.worldX - doorX);
+    var threshold = (<loc.id> === 'arch') ? 80 : 70;
+    if (dist < threshold) return loc;
+  }
+  return null;
+}
+
+/* ============================================================
+   DRAWING
+   ============================================================ */
+
+/* ---- Sky ---- */
+function drawSky() {
+  var grad = ctx.createLinearGradient(0, 0, 0, GY);
+  grad.addColorStop(0,   '#1a0a3a');
+  grad.addColorStop(0.6, '#3d1a70');
+  grad.addColorStop(1,   '#f0c860');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, CW, GY);
+}
+
+/* ---- Background buildings (parallax) ---- */
+function drawBgBuildings() {
+  var px = 0.15;
+  for (var i = 0; i < bgBuildings.length; i++) {
+    var b = bgBuildings[i];
+    var sx = b.x - camera * px;
+    var sy = GY - b.h;
+    ctx.fillStyle = '#2a0f52';
+    ctx.fillRect(sx, sy, b.w, b.h);
+    ctx.fillStyle = 'rgba(240,200,96,0.3)';
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 2; c++) {
+        var wx = sx + 6 + c * (b.w/2 - 4);
+        var wy = sy + 8 + r * 22;
+        if (wx > 0 && wx < CW) ctx.fillRect(wx, wy, b.w/2 - 12, 14);
+      }
+    }
+  }
+}
+
+/* ---- Ground ---- */
+function drawGround() {
+  var ggrad = ctx.createLinearGradient(0, GY, 0, GH);
+  ggrad.addColorStop(0, '#d4c5a0');
+  ggrad.addColorStop(0.3, '#c0b090');
+  ggrad.addColorStop(1, '#a8956c');
+  ctx.fillStyle = ggrad;
+  ctx.fillRect(0, GY, CW, GH - GY);
+
+  ctx.strokeStyle = '#b0a07a';
+  ctx.lineWidth = 1;
+  var slabH = 25;
+  for (var y = GY + slabH; y < GH; y += slabH) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(CW, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#9e8e60';
+  ctx.lineWidth = 1;
+  var seamSpacing = 60;
+  var seamOff = (-camera) % seamSpacing;
+  for (var sx = seamOff; sx < CW; sx += seamSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(sx, GY);
+    ctx.lineTo(sx, GH);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#888060';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, GY);
+  ctx.lineTo(CW, GY);
+  ctx.stroke();
+}
+
+/* ---- Brick helper ---- */
+function drawBricks(x, y, w, h, brickW, brickH, baseColor, mortarColor) {
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = mortarColor;
+  var rows = Math.ceil(h / brickH);
+  for (var r = 0; r <= rows; r++) {
+    var by = y + r * brickH;
+    var offset = (r % 2 === 0) ? 0 : brickW * 0.5;
+    ctx.fillRect(x, by, w, 1.5);
+    var cols = Math.ceil(w / brickW) + 1;
+    for (var c = 0; c <= cols; c++) {
+      var bx = x + c * brickW + offset - brickW;
+      ctx.fillRect(bx, by, 1.5, brickH);
+    }
+  }
+}
+
+/* ---- NYU Bookstore ---- */
+function drawBookstore(sx) {
+  var w = 280, h = 210;
+  var by = GY - h;
+
+  drawBricks(sx, by, w, h, 14, 12, '#8b3a2a', '#5a1a0a');
+
+  ctx.fillStyle = '#6b2a1a';
+  ctx.fillRect(sx, by + 68, w, 4);
+  ctx.fillRect(sx, by + 136, w, 4);
+
+  for (var row = 0; row < 3; row++) {
+    for (var col = 0; col < 3; col++) {
+      var wx = sx + 22 + col * 82;
+      var wy = by + 14 + row * 68;
+      var ww = 54, wh = 44;
+      ctx.fillStyle = '#3a180a';
+      ctx.fillRect(wx - 3, wy - 3, ww + 6, wh + 10);
+      var wgrad = ctx.createLinearGradient(wx, wy, wx + ww, wy + wh);
+      wgrad.addColorStop(0, '#8ab4d4');
+      wgrad.addColorStop(0.4, '#c8e4f0');
+      wgrad.addColorStop(1, '#6090b0');
+      ctx.fillStyle = wgrad;
+      ctx.fillRect(wx, wy, ww, wh);
+      ctx.beginPath();
+      ctx.arc(wx + ww/2, wy, ww/2, Math.PI, 0);
+      ctx.fillStyle = wgrad;
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(wx + 4, wy + 4, 10, wh - 8);
+    }
+  }
+
+  ctx.fillStyle = '#2d6a2d';
+  ctx.beginPath();
+  ctx.moveTo(sx, GY - 32);
+  ctx.lineTo(sx + w, GY - 32);
+  ctx.lineTo(sx + w - 10, GY - 8);
+  ctx.lineTo(sx + 10, GY - 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a4a1a';
+  ctx.lineWidth = 3;
+  for (var i = 0; i < 7; i++) {
+    var ax = sx + 20 + i * 35;
+    ctx.beginPath();
+    ctx.moveTo(ax, GY - 32);
+    ctx.lineTo(ax - 5, GY - 8);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#f5d76e';
+  ctx.font = 'bold 11px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('NYU BOOKSTORE', sx + w/2, GY - 14);
+
+  ctx.fillStyle = '#3a200a';
+  var dx = sx + w/2 - 18;
+  ctx.fillRect(dx, GY - 55, 36, 55);
+  ctx.fillStyle = '#6b3a1a';
+  ctx.fillRect(dx + 3, GY - 52, 30, 48);
+  ctx.fillStyle = '#8ab4d4';
+  ctx.fillRect(dx + 7, GY - 47, 22, 20);
+  ctx.fillStyle = '#c8a840';
+  ctx.fillRect(dx + 24, GY - 28, 5, 3);
+}
+
+/* ---- Paulson Center ---- */
+function drawPaulson(sx) {
+  var w = 260, h = 230;
+  var by = GY - h;
+
+  ctx.fillStyle = '#1a1a2a';
+  ctx.fillRect(sx, by, w, h);
+
+  var pgrad = ctx.createLinearGradient(sx, by, sx + w, by + h);
+  pgrad.addColorStop(0, '#1a3a5a');
+  pgrad.addColorStop(0.3, '#2a5a8a');
+  pgrad.addColorStop(0.6, '#1a3060');
+  pgrad.addColorStop(1, '#0a1a30');
+  ctx.fillStyle = pgrad;
+  ctx.fillRect(sx + 10, by, w - 20, h);
+
+  ctx.fillStyle = '#2a4a6a';
+  for (var f = 0; f < 7; f++) {
+    ctx.fillRect(sx + 10, by + f * (h/7), w - 20, 4);
+  }
+
+  var cols = 5, rows = 6;
+  var cellW = (w - 40) / cols;
+  var cellH = (h - 30) / rows;
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      var wx = sx + 20 + c * cellW + 3;
+      var wy = by + 15 + r * cellH + 3;
+      var ww = cellW - 6;
+      var wh = cellH - 6;
+      var wgr = ctx.createLinearGradient(wx, wy, wx + ww, wy + wh);
+      wgr.addColorStop(0, '#3a70a0');
+      wgr.addColorStop(0.5, '#5090c0');
+      wgr.addColorStop(1, '#2a5080');
+      ctx.fillStyle = wgr;
+      ctx.fillRect(wx, wy, ww, wh);
+      ctx.fillStyle = 'rgba(200,240,255,0.15)';
+      ctx.beginPath();
+      ctx.moveTo(wx, wy);
+      ctx.lineTo(wx + ww * 0.6, wy);
+      ctx.lineTo(wx, wy + wh * 0.6);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  var canopyGrad = ctx.createLinearGradient(sx + 60, GY - 40, sx + 200, GY - 40);
+  canopyGrad.addColorStop(0, '#8090a0');
+  canopyGrad.addColorStop(0.5, '#c0d0e0');
+  canopyGrad.addColorStop(1, '#607080');
+  ctx.fillStyle = '#8090a0';
+  ctx.fillRect(sx + 60, GY - 42, 140, 8);
+  ctx.fillStyle = '#505a64';
+  ctx.fillRect(sx + 70, GY - 42, 4, 42);
+  ctx.fillRect(sx + 186, GY - 42, 4, 42);
+
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(sx + w/2 - 22, GY - 58, 44, 58);
+  ctx.fillStyle = '#3a70a0';
+  ctx.fillRect(sx + w/2 - 18, GY - 54, 36, 50);
+  ctx.fillStyle = 'rgba(200,240,255,0.2)';
+  ctx.fillRect(sx + w/2 - 14, GY - 50, 10, 40);
+  ctx.fillStyle = '#b0b8c0';
+  ctx.fillRect(sx + w/2 + 8, GY - 34, 6, 3);
+
+  ctx.fillStyle = '#c0d0e0';
+  ctx.font = 'bold 10px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('PAULSON CENTER', sx + w/2, by + 14);
+}
+
+/* ---- Bobst Library ---- */
+function drawBobst(sx) {
+  var w = 300, h = 240;
+  var by = GY - h;
+
+  var rgrad = ctx.createLinearGradient(sx, by, sx, by + h);
+  rgrad.addColorStop(0, '#7a2520');
+  rgrad.addColorStop(0.4, '#8b3025');
+  rgrad.addColorStop(1, '#5a1a18');
+  ctx.fillStyle = rgrad;
+  ctx.fillRect(sx, by, w, h);
+
+  ctx.fillStyle = '#4a1510';
+  ctx.fillRect(sx, GY - 50, w, 50);
+  ctx.strokeStyle = '#3a1008';
+  ctx.lineWidth = 1;
+  for (var rl = 0; rl < 4; rl++) {
+    ctx.beginPath();
+    ctx.moveTo(sx, GY - 40 + rl * 12);
+    ctx.lineTo(sx + w, GY - 40 + rl * 12);
+    ctx.stroke();
+  }
+
+  var wcols = 5, wrows = 7;
+  var wCellW = (w - 40) / wcols;
+  var wCellH = (h - 60) / wrows;
+  for (var wr = 0; wr < wrows; wr++) {
+    for (var wc = 0; wc < wcols; wc++) {
+      var bwx = sx + 20 + wc * wCellW + 4;
+      var bwy = by + 10 + wr * wCellH + 4;
+      var bww = wCellW - 8;
+      var bwh = wCellH - 6;
+      ctx.fillStyle = '#2a1808';
+      ctx.fillRect(bwx - 2, bwy - 2, bww + 4, bwh + 4);
+      var bgr = ctx.createLinearGradient(bwx, bwy, bwx, bwy + bwh);
+      bgr.addColorStop(0, '#7090a8');
+      bgr.addColorStop(0.5, '#a0c0d8');
+      bgr.addColorStop(1, '#507088');
+      ctx.fillStyle = bgr;
+      ctx.fillRect(bwx, bwy, bww, bwh);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(bwx + 2, bwy + 2, bww * 0.35, bwh * 0.35);
+    }
+  }
+
+  ctx.fillStyle = '#3a0f0c';
+  ctx.fillRect(sx - 5, by, w + 10, 12);
+
+  var ax = sx + w/2;
+  var aW = 60, aH = 80;
+  ctx.fillStyle = '#3a1008';
+  ctx.beginPath();
+  ctx.moveTo(ax - aW/2 - 8, GY);
+  ctx.lineTo(ax - aW/2 - 8, GY - aH + aW/2);
+  ctx.arc(ax, GY - aH + aW/2, aW/2 + 8, Math.PI, 0);
+  ctx.lineTo(ax + aW/2 + 8, GY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#1a0a08';
+  ctx.beginPath();
+  ctx.moveTo(ax - aW/2, GY);
+  ctx.lineTo(ax - aW/2, GY - aH + aW/2);
+  ctx.arc(ax, GY - aH + aW/2, aW/2, Math.PI, 0);
+  ctx.lineTo(ax + aW/2, GY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(100,160,200,0.4)';
+  ctx.fillRect(ax - aW/2 + 4, GY - aH + aW/2, aW/2 - 6, aH - aW/2);
+  ctx.fillRect(ax + 2, GY - aH + aW/2, aW/2 - 6, aH - aW/2);
+
+  ctx.fillStyle = '#e8c0a0';
+  ctx.font = 'bold 10px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOBST LIBRARY', sx + w/2, by + 26);
+}
+
+/* ---- Washington Square Park ---- */
+function drawWSP(sx) {
+  var parkScreenX = 2100 - camera;
+  if (parkScreenX < CW) {
+    var grassGrad = ctx.createLinearGradient(0, GY - 80, 0, GY);
+    grassGrad.addColorStop(0, '#2a5a20');
+    grassGrad.addColorStop(1, '#3a7a28');
+    ctx.fillStyle = grassGrad;
+    ctx.fillRect(Math.max(0, parkScreenX), GY - 80, CW - Math.max(0, parkScreenX), 80);
+    ctx.fillStyle = '#4a8a35';
+    ctx.fillRect(Math.max(0, parkScreenX), GY, CW - Math.max(0, parkScreenX), GH - GY);
+    ctx.strokeStyle = '#3a7a28';
+    ctx.lineWidth = 1;
+    for (var gx = Math.max(0, parkScreenX); gx < CW; gx += 12) {
+      ctx.beginPath();
+      ctx.moveTo(gx, GY);
+      ctx.lineTo(gx, GH);
+      ctx.stroke();
+    }
+
+    var fenceStart = Math.max(parkScreenX, 0);
+    ctx.strokeStyle = '#1a1a2a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(fenceStart, GY - 30);
+    ctx.lineTo(CW, GY - 30);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(fenceStart, GY - 18);
+    ctx.lineTo(CW, GY - 18);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    var fenceOff = (-(camera - 2100)) % 20;
+    for (var fx = fenceStart + fenceOff; fx < CW; fx += 20) {
+      ctx.beginPath();
+      ctx.moveTo(fx, GY);
+      ctx.lineTo(fx, GY - 30);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(fx, GY - 30);
+      ctx.lineTo(fx - 3, GY - 38);
+      ctx.lineTo(fx, GY - 44);
+      ctx.lineTo(fx + 3, GY - 38);
+      ctx.closePath();
+      ctx.fillStyle = '#2a2a3a';
+      ctx.fill();
+    }
+  }
+}
+
+/* ---- Washington Square Arch ---- */
+function drawArch(sx) {
+  var playerDist = Math.abs(player.worldX - 2500);
+  var rawScale = 1.0 - (playerDist / 600);
+  if (rawScale < 0.4) rawScale = 0.4;
+  if (rawScale > 1.0) rawScale = 1.0;
+  var sc = rawScale;
+
+  var archW = 180 * sc;
+  var archH = 220 * sc;
+  var archOpenW = 60 * sc;
+  var archOpenH = 100 * sc;
+  var pilW = 38 * sc;
+
+  var cx = sx;
+  var baseY = GY;
+  var topY = baseY - archH;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(cx - archW/2 + 8, topY + 8, archW, archH);
+
+  var stoneGrad = ctx.createLinearGradient(cx - archW/2, topY, cx + archW/2, baseY);
+  stoneGrad.addColorStop(0, '#f8f4e8');
+  stoneGrad.addColorStop(0.3, '#f4f0e4');
+  stoneGrad.addColorStop(0.7, '#e0dac8');
+  stoneGrad.addColorStop(1, '#c8c0a8');
+  ctx.fillStyle = stoneGrad;
+  ctx.fillRect(cx - archW/2, topY, archW, archH);
+
+  ctx.fillStyle = '#4a8a35';
+  ctx.fillRect(cx - archOpenW/2, baseY - archOpenH, archOpenW, archOpenH);
+
+  ctx.fillStyle = '#4a8a35';
+  ctx.beginPath();
+  ctx.arc(cx, baseY - archOpenH + archOpenW/2, archOpenW/2, Math.PI, 0);
+  ctx.fill();
+
+  ctx.strokeStyle = '#d8d0b8';
+  ctx.lineWidth = 8 * sc;
+  ctx.beginPath();
+  ctx.arc(cx, baseY - archOpenH + archOpenW/2, archOpenW/2 + 4*sc, Math.PI, 0);
+  ctx.stroke();
+  ctx.strokeStyle = '#b0a888';
+  ctx.lineWidth = 2 * sc;
+  ctx.beginPath();
+  ctx.arc(cx, baseY - archOpenH + archOpenW/2, archOpenW/2 + 8*sc, Math.PI, 0);
+  ctx.stroke();
+
+  var ks = 10 * sc;
+  ctx.fillStyle = '#e8e0c8';
+  ctx.beginPath();
+  ctx.moveTo(cx - ks/2, baseY - archOpenH + archOpenW/2 - archOpenW/2 - ks*0.5);
+  ctx.lineTo(cx + ks/2, baseY - archOpenH + archOpenW/2 - archOpenW/2 - ks*0.5);
+  ctx.lineTo(cx + ks*0.7, baseY - archOpenH + archOpenW/2 - archOpenW/2 + ks*0.3);
+  ctx.lineTo(cx - ks*0.7, baseY - archOpenH + archOpenW/2 - archOpenW/2 + ks*0.3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#b0a888';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  var leftPilX = cx - archW/2;
+  ctx.fillStyle = '#ece8d8';
+  ctx.fillRect(leftPilX, topY, pilW, archH);
+  ctx.strokeStyle = 'rgba(160,150,130,0.6)';
+  ctx.lineWidth = 1;
+  var flutes = 5;
+  for (var fl = 0; fl < flutes; fl++) {
+    var flX = leftPilX + 4 + fl * (pilW - 8) / flutes;
+    ctx.beginPath();
+    ctx.moveTo(flX, topY + 8*sc);
+    ctx.lineTo(flX, baseY - 16*sc);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#f4f0e4';
+  ctx.fillRect(leftPilX - 4*sc, topY, pilW + 8*sc, 14*sc);
+  ctx.fillRect(leftPilX - 2*sc, topY + 14*sc, pilW + 4*sc, 6*sc);
+  ctx.fillStyle = '#d8d0b8';
+  ctx.fillRect(leftPilX - 3*sc, baseY - 16*sc, pilW + 6*sc, 8*sc);
+  ctx.fillRect(leftPilX - 5*sc, baseY - 8*sc, pilW + 10*sc, 8*sc);
+
+  var rightPilX = cx + archW/2 - pilW;
+  ctx.fillStyle = '#ece8d8';
+  ctx.fillRect(rightPilX, topY, pilW, archH);
+  ctx.strokeStyle = 'rgba(160,150,130,0.6)';
+  ctx.lineWidth = 1;
+  for (var fr = 0; fr < flutes; fr++) {
+    var frX = rightPilX + 4 + fr * (pilW - 8) / flutes;
+    ctx.beginPath();
+    ctx.moveTo(frX, topY + 8*sc);
+    ctx.lineTo(frX, baseY - 16*sc);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#f4f0e4';
+  ctx.fillRect(rightPilX - 4*sc, topY, pilW + 8*sc, 14*sc);
+  ctx.fillRect(rightPilX - 2*sc, topY + 14*sc, pilW + 4*sc, 6*sc);
+  ctx.fillStyle = '#d8d0b8';
+  ctx.fillRect(rightPilX - 3*sc, baseY - 16*sc, pilW + 6*sc, 8*sc);
+  ctx.fillRect(rightPilX - 5*sc, baseY - 8*sc, pilW + 10*sc, 8*sc);
+
+  var entH = 24 * sc;
+  var entY = topY + archH * 0.45;
+  ctx.fillStyle = '#e8e4d4';
+  ctx.fillRect(cx - archW/2 - 5*sc, entY, archW + 10*sc, entH);
+  ctx.fillStyle = '#c0b8a0';
+  ctx.fillRect(cx - archW/2 - 5*sc, entY, archW + 10*sc, 3*sc);
+  ctx.fillRect(cx - archW/2 - 5*sc, entY + entH - 2*sc, archW + 10*sc, 2*sc);
+  ctx.fillStyle = '#d0c8b0';
+  var modSpacing = 14 * sc;
+  for (var mi = 0; mi < 10; mi++) {
+    var mx = cx - archW/2 + 4*sc + mi * modSpacing;
+    if (mx < cx + archW/2) {
+      ctx.fillRect(mx, entY + 2*sc, 7*sc, entH - 4*sc);
+    }
+  }
+
+  var atticH = archH * 0.38;
+  var atticY = topY;
+  ctx.fillStyle = '#f0ecdc';
+  ctx.fillRect(cx - archW/2 + 2*sc, atticY, archW - 4*sc, atticH);
+
+  var panW = archW * 0.32;
+  var panH = atticH * 0.55;
+  var panY = atticY + atticH * 0.2;
+  ctx.fillStyle = '#e0d8c0';
+  ctx.fillRect(cx - archW/2 + pilW + 4*sc, panY, panW, panH);
+  ctx.strokeStyle = '#c0b8a0';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx - archW/2 + pilW + 4*sc, panY, panW, panH);
+  ctx.fillStyle = '#e0d8c0';
+  ctx.fillRect(cx + archW/2 - pilW - panW - 4*sc, panY, panW, panH);
+  ctx.strokeStyle = '#c0b8a0';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx + archW/2 - pilW - panW - 4*sc, panY, panW, panH);
+
+  ctx.fillStyle = '#5a4a2a';
+  ctx.font = 'bold ' + Math.round(8*sc) + 'px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('WASHINGTON SQUARE', cx, atticY + atticH * 0.65);
+
+  ctx.fillStyle = '#d8d4c4';
+  ctx.fillRect(cx - archW/2 - 8*sc, atticY - 5*sc, archW + 16*sc, 8*sc);
+  ctx.fillStyle = '#c8c0a8';
+  ctx.fillRect(cx - archW/2 - 6*sc, atticY - 10*sc, archW + 12*sc, 5*sc);
+
+  ctx.strokeStyle = 'rgba(180,170,150,0.5)';
+  ctx.lineWidth = 0.5;
+  var coursing = 10 * sc;
+  for (var cy2 = entY + entH; cy2 < baseY - archOpenH; cy2 += coursing) {
+    ctx.beginPath();
+    ctx.moveTo(cx - archOpenW/2, cy2);
+    ctx.lineTo(cx - archW/2, cy2);
+    ctx.moveTo(cx + archOpenW/2, cy2);
+    ctx.lineTo(cx + archW/2, cy2);
+    ctx.stroke();
+  }
+}
+
+/* ---- Street lamp ---- */
+function drawLamp(sx) {
+  ctx.fillStyle = '#2a2a3a';
+  ctx.fillRect(sx - 3, GY - 120, 6, 120);
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(sx, GY - 118);
+  ctx.quadraticCurveTo(sx + 18, GY - 132, sx + 26, GY - 128);
+  ctx.stroke();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(sx + 18, GY - 136, 18, 10);
+  var glow = ctx.createRadialGradient(sx + 27, GY - 131, 2, sx + 27, GY - 131, 22);
+  glow.addColorStop(0, 'rgba(255,240,180,0.7)');
+  glow.addColorStop(0.4, 'rgba(255,220,120,0.3)');
+  glow.addColorStop(1, 'rgba(255,200,80,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(sx + 6, GY - 152, 42, 42);
+  ctx.fillStyle = '#fff8d0';
+  ctx.fillRect(sx + 21, GY - 134, 12, 6);
+}
+
+/* ---- Trees ---- */
+function drawTree(sx) {
+  ctx.fillStyle = '#5a3a18';
+  ctx.fillRect(sx - 5, GY - 70, 10, 70);
+  var leafColors = ['#2a6a18', '#3a7a22', '#4a8a2a', '#2d5a18'];
+  var leafData = [
+    [sx, GY - 110, 28],
+    [sx - 18, GY - 90, 22],
+    [sx + 18, GY - 88, 22],
+    [sx - 8, GY - 130, 20],
+    [sx + 10, GY - 125, 18]
+  ];
+  for (var li = 0; li < leafData.length; li++) {
+    ctx.fillStyle = leafColors[li % leafColors.length];
+    oval(ctx, leafData[li][0], leafData[li][1], leafData[li][2], leafData[li][2] * 0.75);
+    ctx.fill();
+  }
+}
+
+/* ---- Character ---- */
+function drawCharacter() {
+  var px = 180;
+  var py = player.y;
+  var face = player.facing;
+  var walk = player.walkFrame;
+
+  if (py < GROUND) {
+    var shadowY = GROUND + 4;
+    var shadowScale = 1 - (GROUND - py) / 80;
+    if (shadowScale < 0.2) shadowScale = 0.2;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    oval(ctx, px, shadowY, 16 * shadowScale, 4 * shadowScale);
+    ctx.fill();
+  }
+
+  var legSwing = Math.sin(walk * 0.15) * 10;
+  var legY = py + 2;
+
+  ctx.strokeStyle = '#222244';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(px, legY);
+  ctx.lineTo(px - face * 4 - legSwing * 0.5, legY + 18);
+  ctx.stroke();
+  ctx.fillStyle = '#111122';
+  oval(ctx, px - face * 4 - legSwing * 0.5, legY + 20, 8, 4);
+  ctx.fill();
+
+  ctx.strokeStyle = '#333366';
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(px, legY);
+  ctx.lineTo(px + face * 4 + legSwing * 0.5, legY + 18);
+  ctx.stroke();
+  ctx.fillStyle = '#222233';
+  oval(ctx, px + face * 4 + legSwing * 0.5, legY + 20, 8, 4);
+  ctx.fill();
+
+  ctx.fillStyle = '#5b21b6';
+  ctx.beginPath();
+  ctx.moveTo(px - 12, py - 46);
+  ctx.lineTo(px + 12, py - 46);
+  ctx.lineTo(px + 20, py);
+  ctx.lineTo(px - 20, py);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(40,0,100,0.35)';
+  ctx.beginPath();
+  ctx.moveTo(px + 2, py - 46);
+  ctx.lineTo(px + 12, py - 46);
+  ctx.lineTo(px + 20, py);
+  ctx.lineTo(px + 4, py);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#7c3aed';
+  ctx.fillRect(px - 10, py - 46, 20, 8);
+
+  if (player.books) {
+    var bookX = px - face * 18;
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(bookX - 10, py - 28, 14, 20);
+    ctx.fillStyle = '#a0522d';
+    ctx.fillRect(bookX - 8, py - 26, 14, 20);
+    ctx.fillStyle = '#f5d76e';
+    ctx.fillRect(bookX - 8, py - 26, 2, 20);
+    ctx.fillStyle = '#4a90d9';
+    ctx.fillRect(bookX - 6, py - 26, 2, 20);
+  }
+
+  var headX = px + face * 2;
+  var headY = py - 58;
+  ctx.fillStyle = '#f0c8a0';
+  oval(ctx, headX, headY, 12, 14);
+  ctx.fill();
+
+  ctx.fillStyle = '#e0b890';
+  oval(ctx, headX - face * 11, headY + 2, 4, 5);
+  ctx.fill();
+
+  ctx.fillStyle = '#3a1a08';
+  var hairParts = [
+    [headX - 4, headY - 13, 7],
+    [headX + 2, headY - 14, 6],
+    [headX + 8, headY - 11, 6],
+    [headX - 9, headY - 9, 6],
+    [headX - 11, headY - 4, 5]
+  ];
+  for (var hi = 0; hi < hairParts.length; hi++) {
+    oval(ctx, hairParts[hi][0], hairParts[hi][1], hairParts[hi][2], hairParts[hi][2] * 0.8);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1.5;
+  var glassX = headX + face * 5;
+  ctx.beginPath();
+  ctx.arc(glassX, headY + 1, 5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(glassX - face * 5, headY + 1);
+  ctx.lineTo(glassX - face * 9, headY + 1);
+  ctx.stroke();
+
+  var capY = headY - 14;
+  ctx.fillStyle = '#111122';
+  ctx.fillRect(headX - 16, capY - 3, 32, 5);
+  ctx.fillStyle = '#1a1a2a';
+  ctx.fillRect(headX - 8, capY - 12, 16, 10);
+
+  ctx.strokeStyle = '#f5d76e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(headX + 6, capY - 8);
+  ctx.lineTo(headX + 6 + Math.sin(walk * 0.12) * 5, capY + 8);
+  ctx.stroke();
+  ctx.fillStyle = '#f5d76e';
+  oval(ctx, headX + 6 + Math.sin(walk * 0.12) * 5, capY + 12, 3, 5);
+  ctx.fill();
+}
+
+/* ---- Objective text ---- */
+function drawObjective() {
+  if (dlgActive || won || celebrating) return;
+  var msgs = [
+    'Go to the NYU Bookstore! (walk right)',
+    'Visit Paulson Center! (keep going right)',
+    'Head to Bobst Library!',
+    'Walk through Washington Square Arch!',
+    ''
+  ];
+  var msg = msgs[Math.min(progress, msgs.length - 1)];
+  if (!msg) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  rrect(ctx, 8, 8, ctx.measureText(msg).width + 24, 26, 6);
+  ctx.fill();
+  ctx.fillStyle = '#f5d76e';
+  ctx.font = '12px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(msg, 20, 26);
+}
+
+/* ---- TAP HERE prompt ---- */
+function drawPrompt() {
+  if (dlgActive || won || celebrating) return;
+  var loc = getNearLocation();
+  if (!loc) return;
+  var ready = false;
+  if (<loc.id> === 'bookstore' && progress === 0) ready = true;
+  if (<loc.id> === 'paulson'   && progress === 1) ready = true;
+  if (<loc.id> === 'bobst'     && progress === 2) ready = true;
+  if (<loc.id> === 'arch'      && progress === 3) ready = true;
+  if (!ready) return;
+
+  var lsx = loc.worldX + loc.w * 0.5 - camera;
+  ctx.fillStyle = 'rgba(107,33,168,0.9)';
+  rrect(ctx, lsx - 40, GY - 160, 80, 28, 8);
+  ctx.fill();
+  ctx.fillStyle = '#f5d76e';
+  ctx.font = 'bold 12px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('TAP HERE', lsx, GY - 141);
+  ctx.beginPath();
+  ctx.moveTo(lsx, GY - 130);
+  ctx.lineTo(lsx - 8, GY - 120);
+  ctx.lineTo(lsx + 8, GY - 120);
+  ctx.closePath();
+  ctx.fillStyle = '#f5d76e';
+  ctx.fill();
+}
+
+/* ---- Celebration particles ---- */
+var particles = [];
+function spawnParticles() {
+  for (var i = 0; i < 30; i++) {
+    particles.push({
+      x: 180 + (Math.random() - 0.5) * 80,
+      y: 300,
+      vx: (Math.random() - 0.5) * 5,
+      vy: -(3 + Math.random() * 5),
+      color: ['#f5d76e','#9b59b6','#e74c3c','#3498db','#2ecc71'][Math.floor(Math.random()*5)],
+      life: 60
+    });
+  }
+}
+function updateParticles() {
+  for (var i = particles.length - 1; i >= 0; i--) {
+    var p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawParticles() {
+  for (var i = 0; i < particles.length; i++) {
+    var p = particles[i];
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life / 60;
+    ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ---- Update ---- */
+function update() {
+  if (dlgActive || won) return;
+
+  if (celebrating) {
+    celebTimer++;
+    if (player.y >= GROUND) {
+      if (celebJumps < 3) {
+        player.vy = -12;
+        celebJumps++;
+        spawnParticles();
+      } else {
+        celebrating = false;
+        won = true;
+        document.getElementById('winScreen').style.display = '-webkit-flex';
+        document.getElementById('winScreen').style.display = 'flex';
+      }
+    }
+    player.vy += 0.6;
+    player.y += player.vy;
+    if (player.y > GROUND) { player.y = GROUND; player.vy = 0; }
+    updateParticles();
+    return;
+  }
+
+  var moved = false;
+  var speed = 3;
+
+  if (keys['ArrowLeft']) {
+    player.worldX -= speed;
+    player.facing = -1;
+    moved = true;
+    if (player.worldX < 60) player.worldX = 60;
+  }
+  if (keys['ArrowRight']) {
+    if (player.worldX < 2100 || progress >= 3) {
+      player.worldX += speed;
+    } else {
+      player.worldX = 2100;
+    }
+    player.facing = 1;
+    moved = true;
+    if (player.worldX > GW - 60) player.worldX = GW - 60;
+  }
+
+  player.walking = moved;
+  if (moved) player.walkFrame++;
+
+  player.vy += 0.5;
+  player.y += player.vy;
+  if (player.y > GROUND) { player.y = GROUND; player.vy = 0; }
+
+  camera = player.worldX - 180;
+  if (camera < 0) camera = 0;
+  if (camera > GW - CW) camera = GW - CW;
+
+  updateParticles();
+}
+
+/* ---- Render ---- */
+function render() {
+  ctx.clearRect(0, 0, CW, GH);
+  ctx.textAlign = 'left';
+
+  drawSky();
+  drawBgBuildings();
+
+  var wspSx = 2100 - camera;
+  drawWSP(wspSx);
+
+  drawGround();
+
+  var bookSx = locations[0].worldX - camera;
+  var paulSx = locations[1].worldX - camera;
+  var bobSx  = locations[2].worldX - camera;
+  var archSx = locations[3].worldX - camera;
+
+  if (bookSx < CW + 50 && bookSx + 280 > -50) drawBookstore(bookSx);
+  if (paulSx < CW + 50 && paulSx + 260 > -50) drawPaulson(paulSx);
+  if (bobSx  < CW + 50 && bobSx  + 300 > -50) drawBobst(bobSx);
+
+  if (archSx > -200 && archSx < CW + 200) drawArch(archSx + 90);
+
+  for (var ti = 0; ti < TREE_POSITIONS.length; ti++) {
+    var tsx = TREE_POSITIONS[ti] - camera;
+    if (tsx > -60 && tsx < CW + 60) drawTree(tsx);
+  }
+
+  for (var li = 0; li < LAMP_POSITIONS.length; li++) {
+    var lsx2 = LAMP_POSITIONS[li] - camera;
+    if (lsx2 > -60 && lsx2 < CW + 60) drawLamp(lsx2);
+  }
+
+  drawCharacter();
+  drawParticles();
+  drawObjective();
+  drawPrompt();
+
+  if (progress < 3 && player.worldX >= 2060 && player.worldX <= 2120) {
+    ctx.fillStyle = '#f5d76e';
+    ctx.font = 'bold 13px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('Visit all 3 buildings first!', CW/2, GY - 50);
+  }
+}
+
+/* ---- Game loop ---- */
+var lastTime = 0;
+function loop(ts) {
+  try {
+    update();
+    render();
+  } catch(e) {
+    showError(e.message + ' | ' + e.stack);
+    return;
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---- Init ---- */
+updateHUD();
+requestAnimationFrame(loop);
+
+setTimeout(function() {
+  startDialogue('intro');
+}, 400);
+
+</script>
+</body>
+</html>
